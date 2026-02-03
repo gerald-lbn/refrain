@@ -6,13 +6,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	Libraries []Library `yaml:"libraries"`
-}
-
 type Library struct {
 	Path string `yaml:"path"`
 	Name string `yaml:"name"`
+}
+
+type Logger struct {
+	Level string `yaml:"level"`
+}
+
+type Config struct {
+	Libraries []Library `yaml:"libraries"`
+	Logger    Logger    `yaml:"logger"`
 }
 
 func Load(path string) (*Config, error) {

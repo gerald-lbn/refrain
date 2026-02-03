@@ -1,26 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/gerald-lbn/refrain/internal/config"
 	"github.com/gerald-lbn/refrain/internal/container"
+	"github.com/gerald-lbn/refrain/internal/logger"
 )
 
 func main() {
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	cfg, err := config.Load("/config/config.yaml")
 	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
+		l.Error("Failed to load configuration", "error", err)
+		os.Exit(1)
 	}
 
-	c := container.New(cfg)
+	l = logger.New(cfg)
 
-	fmt.Printf("Refrain Backend Initialized.\n")
+	c := container.New(cfg, l)
+
+	l.Info("Refrain Backend Initialized")
 	if c.Config != nil {
-		fmt.Printf("Loaded %d libraries\n", len(c.Config.Libraries))
+		l.Info("Loaded libraries", "count", len(c.Config.Libraries))
 		for _, lib := range c.Config.Libraries {
-			fmt.Printf("- %s: %s\n", lib.Name, lib.Path)
+			l.Info("Library loaded", "name", lib.Name, "path", lib.Path)
 		}
 	}
 }
