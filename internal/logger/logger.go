@@ -12,7 +12,7 @@ func New(cfg *config.Config) *slog.Logger {
 		Level: stringToLevel(cfg.Logger.Level),
 	}
 
-	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	return slog.New(slog.NewTextHandler(os.Stdout, opts))
 }
 
 func stringToLevel(level string) slog.Level {
