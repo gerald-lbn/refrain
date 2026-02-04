@@ -39,7 +39,7 @@ func (w *Watcher) Add(path string) error {
 			return err
 		}
 		if d.IsDir() {
-			w.logger.Info("Watching directory", "path", path)
+			w.logger.Debug("Watching directory", "path", path)
 			return w.fs.Add(path)
 		}
 		return nil
