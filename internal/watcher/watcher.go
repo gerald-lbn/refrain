@@ -2,7 +2,11 @@ package watcher
 
 import (
 	"context"
+	"io/fs"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"slices"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -25,8 +29,21 @@ func New(logger *slog.Logger) (*Watcher, error) {
 }
 
 func (w *Watcher) Add(path string) error {
-	w.logger.Info("Watching directory", "path", path)
-	return w.fs.Add(path)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	return filepath.WalkDir(absPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			w.logger.Info("Watching directory", "path", path)
+			return w.fs.Add(path)
+		}
+		return nil
+	})
 }
 
 func (w *Watcher) Run(ctx context.Context) error {
@@ -40,7 +57,17 @@ func (w *Watcher) Run(ctx context.Context) error {
 				return nil
 			}
 			w.logger.Debug("File event", "name", event.Name, "op", event.Op)
-			// TODO: Dispatch event to tagger
+
+			if event.Has(fsnotify.Create) {
+				st, err := os.Stat(event.Name)
+				if err == nil {
+					if st.IsDir() && !slices.Contains(w.fs.WatchList(), event.Name) {
+						if err := w.Add(event.Name); err != nil {
+							w.logger.Error("Failed to add new directory", "path", event.Name, "error", err)
+						}
+					}
+				}
+			}
 		case err, ok := <-w.fs.Errors:
 			if !ok {
 				return nil
