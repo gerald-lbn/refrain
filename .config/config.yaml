@@ -1,0 +1,6 @@
+libraries:
+  - name: Main library
+    path: /music
+
+logger:
+  level: debug
