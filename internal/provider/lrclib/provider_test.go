@@ -87,9 +87,33 @@ var _ = Describe("Provider", func() {
 			Expect(results).To(HaveLen(1))
 			Expect(results[0].Text).To(Equal("[00:10.00] Verse 1"))
 		})
+
+		It("should handle instrumental tracks correctly", func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				resp := []lrclibTrack{
+					{
+						ID:           2,
+						TrackName:    "Instrumental Song",
+						ArtistName:   "Test Artist",
+						Instrumental: true,
+					},
+				}
+				json.NewEncoder(w).Encode(resp)
+			}))
+
+			u, _ := url.Parse(server.URL)
+			client := &http.Client{Transport: &urlRewriteTransport{Target: u}}
+			provider = New(logger, client)
+
+			results, err := provider.Search(context.Background(), domain.Track{Title: "Instrumental Song"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(HaveLen(1))
+			Expect(results[0].Text).To(Equal("Instrumental"))
+			Expect(results[0].IsSynced).To(BeFalse())
+		})
 	})
 
-	Describe("Get", func() {
+	Describe("Download", func() {
 		It("should fetch lyrics by ID", func() {
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
@@ -108,7 +132,7 @@ var _ = Describe("Provider", func() {
 			client := &http.Client{Transport: &urlRewriteTransport{Target: u}}
 			provider = New(logger, client)
 
-			lyrics, err := provider.Get(context.Background(), "123")
+			lyrics, err := provider.Download(context.Background(), "123")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(lyrics.Text).To(Equal("Plain text"))
 			Expect(lyrics.IsSynced).To(BeFalse())
