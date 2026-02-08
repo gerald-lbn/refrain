@@ -45,10 +45,10 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 }
 
 func (o *Orchestrator) scanLibrary(ctx context.Context, path string) {
-	o.logger.Info("Starting scan", "path", path)
+	o.logger.InfoContext(ctx, "Starting scan", "path", path)
 	tracks, err := o.scanner.Scan(ctx, path)
 	if err != nil {
-		o.logger.Error("Scan failed", "path", path, "error", err)
+		o.logger.ErrorContext(ctx, "Scan failed", "path", path, "error", err)
 		return
 	}
 
@@ -62,14 +62,14 @@ func (o *Orchestrator) scanLibrary(ctx context.Context, path string) {
 			defer workerWg.Done()
 			for track := range tracks {
 				if err := o.processTrack(ctx, track); err != nil {
-					o.logger.Error("Failed to process track", "path", track.Path, "error", err)
+					o.logger.ErrorContext(ctx, "Failed to process track", "path", track.Path, "error", err)
 				}
 			}
 		})
 	}
 
 	workerWg.Wait()
-	o.logger.Info("Scan complete", "path", path)
+	o.logger.InfoContext(ctx, "Scan complete", "path", path)
 }
 
 func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) error {
@@ -77,15 +77,15 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 	txtPath := helper.ReplaceExtension(track.Path, ".txt")
 
 	if _, err := os.Stat(lrcPath); err == nil {
-		o.logger.Debug("Lyrics already exist", "path", lrcPath)
+		o.logger.DebugContext(ctx, "Lyrics already exist", "path", lrcPath)
 		return nil
 	}
 	if _, err := os.Stat(txtPath); err == nil {
-		o.logger.Debug("Lyrics (txt) already exist", "path", txtPath)
+		o.logger.DebugContext(ctx, "Lyrics (txt) already exist", "path", txtPath)
 		return nil
 	}
 
-	o.logger.Info("Searching lyrics", "artist", track.Artist, "album", track.Album, "title", track.Title)
+	o.logger.InfoContext(ctx, "Searching lyrics", "artist", track.Artist, "album", track.Album, "title", track.Title)
 
 	results, err := o.provider.Search(ctx, track)
 	if err != nil {
@@ -93,7 +93,7 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 	}
 
 	if len(results) == 0 {
-		o.logger.Debug("No lyrics found", "track", track.Title)
+		o.logger.WarnContext(ctx, "No lyrics found", "track", track.Title)
 		return nil
 	}
 
@@ -115,6 +115,6 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 		return fmt.Errorf("failed to write lyrics file: %w", err)
 	}
 
-	o.logger.Info("Saved lyrics", "path", savePath, "source", bestMatch.Source, "synced", bestMatch.IsSynced)
+	o.logger.InfoContext(ctx, "Saved lyrics", "path", savePath, "source", bestMatch.Source, "synced", bestMatch.IsSynced)
 	return nil
 }

@@ -19,14 +19,14 @@ func main() {
 	c := container.Build()
 
 	err := c.Invoke(func(orc *orchestrator.Orchestrator, cfg *config.Config, logger *slog.Logger) {
-		logger.Info("Starting Refrain...")
+		logger.InfoContext(ctx, "Starting Refrain...")
 
 		if err := orc.Run(context.Background()); err != nil {
-			logger.Error("Orchestrator failed", "error", err)
+			logger.ErrorContext(ctx, "Orchestrator failed", "error", err)
 		}
 
 		<-ctx.Done()
-		logger.Info("Shutting down...")
+		logger.InfoContext(ctx, "Shutting down...")
 	})
 
 	if err != nil {

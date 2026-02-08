@@ -34,7 +34,7 @@ func (s *Scanner) Scan(ctx context.Context, path string) (<-chan domain.Track, e
 
 		err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
-				s.logger.Error("Error walking path", "path", path, "error", err)
+				s.logger.ErrorContext(ctx, "Error walking path", "path", path, "error", err)
 				return nil
 			}
 
@@ -55,7 +55,7 @@ func (s *Scanner) Scan(ctx context.Context, path string) (<-chan domain.Track, e
 
 			tags, err := s.metadataReader.Read(path)
 			if err != nil {
-				s.logger.Warn("Failed to read tags", "path", path, "error", err)
+				s.logger.WarnContext(ctx, "Failed to read tags", "path", path, "error", err)
 				return nil
 			}
 
@@ -78,7 +78,7 @@ func (s *Scanner) Scan(ctx context.Context, path string) (<-chan domain.Track, e
 		})
 
 		if err != nil {
-			s.logger.Error("WalkDir failed", "error", err)
+			s.logger.ErrorContext(ctx, "WalkDir failed", "error", err)
 		}
 	}()
 
