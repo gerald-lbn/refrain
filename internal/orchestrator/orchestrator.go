@@ -85,7 +85,7 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 		return nil
 	}
 
-	o.logger.InfoContext(ctx, "Searching lyrics", "artist", track.Artist, "album", track.Album, "title", track.Title)
+	o.logger.DebugContext(ctx, "Searching lyrics", "artist", track.Artist, "album", track.Album, "title", track.Title)
 
 	results, err := o.provider.Search(ctx, track)
 	if err != nil {
@@ -115,6 +115,6 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 		return fmt.Errorf("failed to write lyrics file: %w", err)
 	}
 
-	o.logger.InfoContext(ctx, "Saved lyrics", "path", savePath, "source", bestMatch.Source, "synced", bestMatch.IsSynced)
+	o.logger.DebugContext(ctx, "Saved lyrics", "path", savePath, "source", bestMatch.Source, "synced", bestMatch.IsSynced)
 	return nil
 }
