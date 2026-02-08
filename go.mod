@@ -8,6 +8,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	go.senan.xyz/taglib v0.11.1
 	go.uber.org/dig v1.19.0
+	go.uber.org/mock v0.6.0
 )
 
 require (
