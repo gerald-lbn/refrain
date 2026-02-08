@@ -6,3 +6,6 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+    volumes:
+      - /home/gerald/Music:/music:ro
+      - ./.volumes/refrain/config:/config
