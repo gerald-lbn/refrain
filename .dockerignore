@@ -34,3 +34,8 @@ go.work.sum
 
 # Docker volumes
 .volumes
+
+# Testing
+**/*_test.go
+**/testdata/
+internal/mocks/
