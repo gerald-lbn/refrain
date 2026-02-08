@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const DefaultConfigPath = "/config/config.yml"
+
 type Config struct {
 	Libraries []LibraryConfig `mapstructure:"libraries"`
 	Log       LogConfig       `mapstructure:"log"`
