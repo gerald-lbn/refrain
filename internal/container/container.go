@@ -4,9 +4,12 @@ import (
 	"log/slog"
 
 	"github.com/gerald-lbn/refrain/internal/config"
+	"github.com/gerald-lbn/refrain/internal/domain"
 	"github.com/gerald-lbn/refrain/internal/logger"
 	"github.com/gerald-lbn/refrain/internal/metadata"
 	"github.com/gerald-lbn/refrain/internal/metadata/taglib"
+	"github.com/gerald-lbn/refrain/internal/orchestrator"
+	"github.com/gerald-lbn/refrain/internal/provider/lrclib"
 	"github.com/gerald-lbn/refrain/internal/scanner"
 	"go.uber.org/dig"
 )
@@ -27,6 +30,12 @@ func Build() *dig.Container {
 	})
 
 	c.Provide(scanner.New)
+
+	c.Provide(func(logger *slog.Logger) domain.LyricsProvider {
+		return lrclib.New(logger, nil)
+	})
+
+	c.Provide(orchestrator.New)
 
 	return c
 }

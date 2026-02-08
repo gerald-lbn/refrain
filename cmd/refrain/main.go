@@ -9,7 +9,7 @@ import (
 
 	"github.com/gerald-lbn/refrain/internal/config"
 	"github.com/gerald-lbn/refrain/internal/container"
-	"github.com/gerald-lbn/refrain/internal/scanner"
+	"github.com/gerald-lbn/refrain/internal/orchestrator"
 )
 
 func main() {
@@ -18,11 +18,11 @@ func main() {
 
 	c := container.Build()
 
-	err := c.Invoke(func(s *scanner.Scanner, cfg *config.Config, logger *slog.Logger) {
+	err := c.Invoke(func(orc *orchestrator.Orchestrator, cfg *config.Config, logger *slog.Logger) {
 		logger.Info("Starting Refrain...")
 
-		for _, lib := range cfg.Libraries {
-			logger.Info("Scanning library", "path", lib.Path)
+		if err := orc.Run(context.Background()); err != nil {
+			logger.Error("Orchestrator failed", "error", err)
 		}
 
 		<-ctx.Done()
