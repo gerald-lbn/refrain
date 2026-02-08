@@ -5,10 +5,16 @@ import (
 )
 
 const DefaultConfigPath = "/config/config.yml"
+const DefaultAppWorkers = 5
 
 type Config struct {
 	Libraries []LibraryConfig `mapstructure:"libraries"`
 	Log       LogConfig       `mapstructure:"log"`
+	App       AppConfig       `mapstructure:"app"`
+}
+
+type AppConfig struct {
+	Workers int `mapstructure:"workers"`
 }
 
 type LibraryConfig struct {
@@ -24,6 +30,9 @@ type LogConfig struct {
 func LoadConfig(path string) (*Config, error) {
 	viper.SetConfigFile(path)
 	viper.SetConfigType("yaml")
+
+	// Set defaults
+	viper.SetDefault("app.workers", DefaultAppWorkers)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
