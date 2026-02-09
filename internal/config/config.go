@@ -31,7 +31,6 @@ func LoadConfig(path string) (*Config, error) {
 	viper.SetConfigFile(path)
 	viper.SetConfigType("yaml")
 
-	// Set defaults
 	viper.SetDefault("app.workers", DefaultAppWorkers)
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -41,6 +40,10 @@ func LoadConfig(path string) (*Config, error) {
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, err
+	}
+
+	if config.App.Workers <= 0 {
+		config.App.Workers = DefaultAppWorkers
 	}
 
 	return &config, nil

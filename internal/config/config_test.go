@@ -64,4 +64,22 @@ libraries:
 		_, err = config.LoadConfig(malformedConfig.Name())
 		Expect(err).To(HaveOccurred())
 	})
+
+	It("should default workers to 5 if provided value is invalid", func() {
+		invalidWorkersConfig, err := os.CreateTemp("", "invalid-workers-*.yaml")
+		Expect(err).NotTo(HaveOccurred())
+		defer os.Remove(invalidWorkersConfig.Name())
+
+		content := `
+app:
+  workers: 0
+`
+		_, err = invalidWorkersConfig.WriteString(content)
+		Expect(err).NotTo(HaveOccurred())
+		invalidWorkersConfig.Close()
+
+		cfg, err := config.LoadConfig(invalidWorkersConfig.Name())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cfg.App.Workers).To(Equal(5))
+	})
 })
