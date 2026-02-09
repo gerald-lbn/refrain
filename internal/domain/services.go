@@ -3,7 +3,6 @@ package domain
 import "context"
 
 type LyricsProvider interface {
-	Name() string
 	Search(ctx context.Context, track Track) ([]Lyrics, error)
 	Download(ctx context.Context, id string) (Lyrics, error)
 }

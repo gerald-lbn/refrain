@@ -31,10 +31,6 @@ func New(logger *slog.Logger, client *http.Client) *Provider {
 	}
 }
 
-func (p *Provider) Name() string {
-	return "LRCLIB"
-}
-
 // Search searches for lyrics for the given track.
 func (p *Provider) Search(ctx context.Context, track domain.Track) ([]domain.Lyrics, error) {
 	u, err := url.Parse(baseURL + "/search")
