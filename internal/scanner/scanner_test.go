@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -81,6 +82,51 @@ var _ = Describe("Scanner", func() {
 			mockReader.EXPECT().Read(gomock.Any()).Times(0)
 
 			ch, err := s.Scan(ctx, tempDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var tracks []domain.Track
+			for t := range ch {
+				tracks = append(tracks, t)
+			}
+			Expect(tracks).To(BeEmpty())
+		})
+
+		It("should stop scanning when context is cancelled", func() {
+			for i := range 100 {
+				filePath := filepath.Join(tempDir, strconv.FormatInt(int64(i), 10)+".mp3")
+				os.WriteFile(filePath, []byte("dummy"), 0644)
+			}
+
+			mockReader.EXPECT().Read(gomock.Any()).Return(&domain.Track{}, nil).AnyTimes()
+
+			ch, err := s.Scan(ctx, tempDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			cancel()
+
+			for range ch {
+			}
+		})
+
+		It("should handle metadata read errors", func() {
+			filePath := filepath.Join(tempDir, "error.mp3")
+			err := os.WriteFile(filePath, []byte("dummy"), 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			mockReader.EXPECT().Read(filePath).Return(nil, os.ErrPermission).Times(1)
+
+			ch, err := s.Scan(ctx, tempDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			var tracks []domain.Track
+			for t := range ch {
+				tracks = append(tracks, t)
+			}
+			Expect(tracks).To(BeEmpty())
+		})
+
+		It("should handle walk errors", func() {
+			ch, err := s.Scan(ctx, "/path/to/nowhere")
 			Expect(err).NotTo(HaveOccurred())
 
 			var tracks []domain.Track

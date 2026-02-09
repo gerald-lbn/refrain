@@ -48,12 +48,18 @@ var _ = Describe("Provider", func() {
 		}
 	})
 
+	Describe("New", func() {
+		It("should initialize with default client if nil is provided", func() {
+			p := New(logger, nil)
+			Expect(p.client).NotTo(BeNil())
+			Expect(p.client.Timeout).To(Equal(10 * time.Second))
+		})
+	})
+
 	Describe("Search", func() {
 		It("should return lyrics when found", func() {
-			// Mock Server
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				defer GinkgoRecover()
-				// Verify path is correct (relative to baseURL)
 				Expect(r.URL.Path).To(Equal("/api/search"))
 				Expect(r.URL.Query().Get("track_name")).To(Equal("Test Song"))
 
@@ -111,31 +117,31 @@ var _ = Describe("Provider", func() {
 			Expect(results[0].Text).To(Equal("Instrumental"))
 			Expect(results[0].IsSynced).To(BeFalse())
 		})
-	})
 
-	Describe("Download", func() {
-		It("should fetch lyrics by ID", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				defer GinkgoRecover()
-				Expect(r.URL.Path).To(Equal("/api/get/123"))
+		Describe("Download", func() {
+			It("should fetch lyrics by ID", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					defer GinkgoRecover()
+					Expect(r.URL.Path).To(Equal("/api/get/123"))
 
-				resp := lrclibTrack{
-					ID:           123,
-					TrackName:    "Test Song",
-					PlainLyrics:  "Plain text",
-					SyncedLyrics: "",
-				}
-				json.NewEncoder(w).Encode(resp)
-			}))
+					resp := lrclibTrack{
+						ID:           123,
+						TrackName:    "Test Song",
+						PlainLyrics:  "Plain text",
+						SyncedLyrics: "",
+					}
+					json.NewEncoder(w).Encode(resp)
+				}))
 
-			u, _ := url.Parse(server.URL)
-			client := &http.Client{Transport: &urlRewriteTransport{Target: u}}
-			provider = New(logger, client)
+				u, _ := url.Parse(server.URL)
+				client := &http.Client{Transport: &urlRewriteTransport{Target: u}}
+				provider = New(logger, client)
 
-			lyrics, err := provider.Download(context.Background(), "123")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(lyrics.Text).To(Equal("Plain text"))
-			Expect(lyrics.IsSynced).To(BeFalse())
+				lyrics, err := provider.Download(context.Background(), "123")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(lyrics.Text).To(Equal("Plain text"))
+				Expect(lyrics.IsSynced).To(BeFalse())
+			})
 		})
 	})
 })
