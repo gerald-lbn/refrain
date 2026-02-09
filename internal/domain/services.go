@@ -10,3 +10,9 @@ type LyricsProvider interface {
 type LibraryScanner interface {
 	Scan(ctx context.Context, path string) (<-chan Track, error)
 }
+
+type Scheduler interface {
+	AddFunc(ctx context.Context, spec string, cmd func()) error
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
+}

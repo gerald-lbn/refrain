@@ -14,23 +14,39 @@ import (
 )
 
 type Orchestrator struct {
-	cfg      *config.Config
-	scanner  *scanner.Scanner
-	provider domain.LyricsProvider
-	logger   *slog.Logger
+	cfg       *config.Config
+	scanner   *scanner.Scanner
+	provider  domain.LyricsProvider
+	scheduler domain.Scheduler
+	logger    *slog.Logger
 }
 
-func New(cfg *config.Config, s *scanner.Scanner, p domain.LyricsProvider, logger *slog.Logger) *Orchestrator {
+func New(cfg *config.Config, s *scanner.Scanner, p domain.LyricsProvider, sched domain.Scheduler, logger *slog.Logger) *Orchestrator {
 	return &Orchestrator{
-		cfg:      cfg,
-		scanner:  s,
-		provider: p,
-		logger:   logger,
+		cfg:       cfg,
+		scanner:   s,
+		provider:  p,
+		scheduler: sched,
+		logger:    logger,
 	}
 }
 
 func (o *Orchestrator) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
+
+	for _, lib := range o.cfg.Libraries {
+		if lib.ScanInterval != "" {
+			if err := o.scheduler.AddFunc(ctx, lib.ScanInterval, func() {
+				o.scanLibrary(context.Background(), lib.Path)
+			}); err != nil {
+				o.logger.ErrorContext(ctx, "Failed to schedule scan", "path", lib.Path, "error", err)
+			}
+		}
+	}
+
+	if err := o.scheduler.Start(ctx); err != nil {
+		return err
+	}
 
 	for _, lib := range o.cfg.Libraries {
 		wg.Add(1)

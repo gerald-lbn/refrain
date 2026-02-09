@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/gerald-lbn/refrain/internal/config"
+	scheduler "github.com/gerald-lbn/refrain/internal/cron"
 	"github.com/gerald-lbn/refrain/internal/domain"
 	"github.com/gerald-lbn/refrain/internal/logger"
 	"github.com/gerald-lbn/refrain/internal/metadata"
@@ -11,6 +12,7 @@ import (
 	"github.com/gerald-lbn/refrain/internal/orchestrator"
 	"github.com/gerald-lbn/refrain/internal/provider/lrclib"
 	"github.com/gerald-lbn/refrain/internal/scanner"
+	goCron "github.com/robfig/cron/v3"
 	"go.uber.org/dig"
 )
 
@@ -33,6 +35,10 @@ func Build() *dig.Container {
 
 	c.Provide(func(logger *slog.Logger) domain.LyricsProvider {
 		return lrclib.New(logger, nil)
+	})
+
+	c.Provide(func(logger *slog.Logger) domain.Scheduler {
+		return scheduler.New(logger.With("component", "scheduler"), goCron.New())
 	})
 
 	c.Provide(orchestrator.New)
