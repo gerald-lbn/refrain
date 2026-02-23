@@ -8,13 +8,14 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o refrain .
 
 FROM alpine:latest
 WORKDIR /app
-VOLUME [ "/data", "/config" ]
-RUN apk add --no-cache su-exec shadow
-RUN groupadd -g 1000 refrain && \
-    useradd -u 1000 -g 1000 -d /app -s /bin/sh refrain
-COPY --from=builder /app/refrain /app/refrain
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/refrain /app/entrypoint.sh
-
+VOLUME [ "/music", "/config" ]
+RUN apk add --no-cache su-exec && \
+    addgroup -S refrain -g 1000 && \
+    adduser -S refrain -G refrain -u 1000
+COPY --chown=refrain:refrain --from=builder /app/refrain /app/refrain
+COPY --chown=refrain:refrain entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/refrain /app/entrypoint.sh && \
+    mkdir /music /config && \
+    chown refrain:refrain /music /config
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/refrain"]
