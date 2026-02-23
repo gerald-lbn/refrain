@@ -16,16 +16,20 @@ var _ = Describe("Config", func() {
 		err        error
 	)
 	BeforeEach(func() {
-		configFile, err = os.CreateTemp("", "config-*.yaml")
+		configFile, err = os.CreateTemp("", "config-*.json")
 		Expect(err).NotTo(HaveOccurred())
 		tmpPath = configFile.Name()
-		content := `
-log:
-  level: debug
-libraries:
-  - path: "/tmp/music"
-    scan_interval: "1h"
-`
+		content := `{
+			"log": {
+				"level": "debug"
+			},
+			"libraries": [
+				{
+					"path": "/tmp/music",
+					"scan_interval": "1h"
+				}
+			]
+		}`
 		_, err = configFile.WriteString(content)
 		Expect(err).NotTo(HaveOccurred())
 		err = configFile.Close()
@@ -48,16 +52,16 @@ libraries:
 	})
 
 	It("should error when config file does not exist", func() {
-		_, err := config.LoadConfig("/non/existent/path/config.yaml")
+		_, err := config.LoadConfig("/non/existent/path/config.json")
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("should error when config file is malformed", func() {
-		malformedConfig, err := os.CreateTemp("", "malformed-*.yaml")
+		malformedConfig, err := os.CreateTemp("", "malformed-*.json")
 		Expect(err).NotTo(HaveOccurred())
 		defer os.Remove(malformedConfig.Name())
 
-		_, err = malformedConfig.WriteString("libraries: [ unclosed bracket")
+		_, err = malformedConfig.WriteString(`{"libraries": [ unclosed bracket`)
 		Expect(err).NotTo(HaveOccurred())
 		malformedConfig.Close()
 
@@ -66,14 +70,15 @@ libraries:
 	})
 
 	It("should default workers to 5 if provided value is invalid", func() {
-		invalidWorkersConfig, err := os.CreateTemp("", "invalid-workers-*.yaml")
+		invalidWorkersConfig, err := os.CreateTemp("", "invalid-workers-*.json")
 		Expect(err).NotTo(HaveOccurred())
 		defer os.Remove(invalidWorkersConfig.Name())
 
-		content := `
-app:
-  workers: 0
-`
+		content := `{
+			"app": {
+				"workers": 0
+			}
+		}`
 		_, err = invalidWorkersConfig.WriteString(content)
 		Expect(err).NotTo(HaveOccurred())
 		invalidWorkersConfig.Close()
