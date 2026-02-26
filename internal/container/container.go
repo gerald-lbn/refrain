@@ -19,12 +19,12 @@ import (
 func Build() *dig.Container {
 	c := dig.New()
 
-	c.Provide(func() (*config.Config, error) {
-		return config.LoadConfig(config.DefaultConfigPath)
+	c.Provide(func() *config.Config {
+		return config.Load()
 	})
 
 	c.Provide(func(cfg *config.Config) *slog.Logger {
-		return logger.New(cfg.Log.Level)
+		return logger.New(cfg.LogLevel)
 	})
 
 	c.Provide(func() metadata.Reader {

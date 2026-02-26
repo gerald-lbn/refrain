@@ -10,81 +10,81 @@ import (
 )
 
 var _ = Describe("Config", func() {
-	var (
-		configFile *os.File
-		tmpPath    string
-		err        error
-	)
-	BeforeEach(func() {
-		configFile, err = os.CreateTemp("", "config-*.json")
-		Expect(err).NotTo(HaveOccurred())
-		tmpPath = configFile.Name()
-		content := `{
-			"log": {
-				"level": "debug"
-			},
-			"libraries": [
-				{
-					"path": "/tmp/music",
-					"scan_interval": "1h"
-				}
-			]
-		}`
-		_, err = configFile.WriteString(content)
-		Expect(err).NotTo(HaveOccurred())
-		err = configFile.Close()
-		Expect(err).NotTo(HaveOccurred())
-	})
-
 	AfterEach(func() {
-		os.Remove(tmpPath)
+		os.Unsetenv(config.EnvLogLevel)
+		os.Unsetenv(config.EnvAppWorkers)
+		os.Unsetenv(config.EnvLibraries)
+		os.Unsetenv(config.EnvScanInterval)
 	})
 
-	It("should load configuration from file", func() {
-		cfg, err := config.LoadConfig(tmpPath)
+	It("should use default values when no env vars are set", func() {
+		cfg := config.Load()
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg).NotTo(BeNil())
-		Expect(cfg.Log.Level).To(Equal("debug"))
+		Expect(cfg.LogLevel).To(Equal("info"))
+		Expect(cfg.Workers).To(Equal(5))
+		Expect(cfg.Libraries).To(BeEmpty())
+		Expect(cfg.ScanInterval).To(Equal("@every 1h"))
+	})
+
+	It("should read log level from env", func() {
+		os.Setenv(config.EnvLogLevel, "debug")
+
+		cfg := config.Load()
+		Expect(cfg.LogLevel).To(Equal("debug"))
+	})
+
+	It("should read workers from env", func() {
+		os.Setenv(config.EnvAppWorkers, "10")
+
+		cfg := config.Load()
+		Expect(cfg.Workers).To(Equal(10))
+	})
+
+	It("should default workers when env value is invalid", func() {
+		os.Setenv(config.EnvAppWorkers, "not-a-number")
+
+		cfg := config.Load()
+		Expect(cfg.Workers).To(Equal(5))
+	})
+
+	It("should default workers when env value is zero or negative", func() {
+		os.Setenv(config.EnvAppWorkers, "0")
+
+		cfg := config.Load()
+		Expect(cfg.Workers).To(Equal(5))
+	})
+
+	It("should parse libraries from comma-separated env", func() {
+		os.Setenv(config.EnvLibraries, "/music,/jazz")
+
+		cfg := config.Load()
+		Expect(cfg.Libraries).To(HaveLen(2))
+		Expect(cfg.Libraries[0].Path).To(Equal("/music"))
+		Expect(cfg.Libraries[1].Path).To(Equal("/jazz"))
+	})
+
+	It("should trim whitespace from library paths", func() {
+		os.Setenv(config.EnvLibraries, " /music , /jazz ")
+
+		cfg := config.Load()
+		Expect(cfg.Libraries).To(HaveLen(2))
+		Expect(cfg.Libraries[0].Path).To(Equal("/music"))
+		Expect(cfg.Libraries[1].Path).To(Equal("/jazz"))
+	})
+
+	It("should apply scan interval to all libraries", func() {
+		os.Setenv(config.EnvLibraries, "/music")
+		os.Setenv(config.EnvScanInterval, "@every 30m")
+
+		cfg := config.Load()
 		Expect(cfg.Libraries).To(HaveLen(1))
-		Expect(cfg.Libraries[0].Path).To(Equal("/tmp/music"))
-		Expect(cfg.Libraries[0].ScanInterval).To(Equal("1h"))
+		Expect(cfg.Libraries[0].ScanInterval).To(Equal("@every 30m"))
 	})
 
-	It("should error when config file does not exist", func() {
-		_, err := config.LoadConfig("/non/existent/path/config.json")
-		Expect(err).To(HaveOccurred())
-	})
+	It("should skip empty paths", func() {
+		os.Setenv(config.EnvLibraries, "/music,,/jazz,")
 
-	It("should error when config file is malformed", func() {
-		malformedConfig, err := os.CreateTemp("", "malformed-*.json")
-		Expect(err).NotTo(HaveOccurred())
-		defer os.Remove(malformedConfig.Name())
-
-		_, err = malformedConfig.WriteString(`{"libraries": [ unclosed bracket`)
-		Expect(err).NotTo(HaveOccurred())
-		malformedConfig.Close()
-
-		_, err = config.LoadConfig(malformedConfig.Name())
-		Expect(err).To(HaveOccurred())
-	})
-
-	It("should default workers to 5 if provided value is invalid", func() {
-		invalidWorkersConfig, err := os.CreateTemp("", "invalid-workers-*.json")
-		Expect(err).NotTo(HaveOccurred())
-		defer os.Remove(invalidWorkersConfig.Name())
-
-		content := `{
-			"app": {
-				"workers": 0
-			}
-		}`
-		_, err = invalidWorkersConfig.WriteString(content)
-		Expect(err).NotTo(HaveOccurred())
-		invalidWorkersConfig.Close()
-
-		cfg, err := config.LoadConfig(invalidWorkersConfig.Name())
-		Expect(err).NotTo(HaveOccurred())
-		Expect(cfg.App.Workers).To(Equal(5))
+		cfg := config.Load()
+		Expect(cfg.Libraries).To(HaveLen(2))
 	})
 })

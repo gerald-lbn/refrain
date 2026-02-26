@@ -69,7 +69,7 @@ func (o *Orchestrator) scanLibrary(ctx context.Context, path string) {
 	}
 
 	// Worker pool to process tracks
-	workers := o.cfg.App.Workers
+	workers := o.cfg.Workers
 	var workerWg sync.WaitGroup
 
 	for range workers {

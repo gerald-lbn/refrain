@@ -6,6 +6,9 @@ services:
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      - REFRAIN_LOG_LEVEL=info
+      - REFRAIN_LIBRARIES=/music
+      - REFRAIN_APP_WORKERS=5
+      - REFRAIN_SCAN_INTERVAL=@every 1h
     volumes:
-      - /home/gerald/Music:/music
-      - ./.volumes/refrain/config:/config
+      - /path/to/your/music:/music

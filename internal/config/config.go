@@ -1,63 +1,70 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
-	DefaultConfigPath = "/config/config.json"
-	DefaultAppWorkers = 5
+	DefaultAppWorkers   = 5
+	DefaultLogLevel     = "info"
+	DefaultScanInterval = "@every 1h"
 
-	EnvAppWorkers = "REFRAIN_APP_WORKERS"
-	EnvLogLevel   = "REFRAIN_LOG_LEVEL"
+	EnvAppWorkers   = "REFRAIN_APP_WORKERS"
+	EnvLogLevel     = "REFRAIN_LOG_LEVEL"
+	EnvLibraries    = "REFRAIN_LIBRARIES"
+	EnvScanInterval = "REFRAIN_SCAN_INTERVAL"
 )
 
 type Config struct {
-	Libraries []LibraryConfig `json:"libraries"`
-	Log       LogConfig       `json:"log"`
-	App       AppConfig       `json:"app"`
+	Libraries    []Library
+	LogLevel     string
+	Workers      int
+	ScanInterval string
 }
 
-type AppConfig struct {
-	Workers int `json:"workers"`
+type Library struct {
+	Path         string
+	ScanInterval string
 }
 
-type LibraryConfig struct {
-	Path         string `json:"path"`
-	ScanInterval string `json:"scan_interval"`
-}
+// Load reads configuration from environment variables.
+func Load() *Config {
+	logLevel := getEnv(EnvLogLevel, DefaultLogLevel)
+	scanInterval := getEnv(EnvScanInterval, DefaultScanInterval)
 
-type LogConfig struct {
-	Level string `json:"level"`
-}
-
-// LoadConfig loads the configuration from the specified file path.
-func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
+	workers := DefaultAppWorkers
 	if workersStr := os.Getenv(EnvAppWorkers); workersStr != "" {
-		if workers, err := strconv.Atoi(workersStr); err == nil {
-			config.App.Workers = workers
+		if w, err := strconv.Atoi(workersStr); err == nil && w > 0 {
+			workers = w
 		}
 	}
 
-	if logLevel := os.Getenv(EnvLogLevel); logLevel != "" {
-		config.Log.Level = logLevel
+	var libraries []Library
+	if paths := os.Getenv(EnvLibraries); paths != "" {
+		for p := range strings.SplitSeq(paths, ",") {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				libraries = append(libraries, Library{
+					Path:         p,
+					ScanInterval: scanInterval,
+				})
+			}
+		}
 	}
 
-	if config.App.Workers <= 0 {
-		config.App.Workers = DefaultAppWorkers
+	return &Config{
+		Libraries:    libraries,
+		LogLevel:     logLevel,
+		Workers:      workers,
+		ScanInterval: scanInterval,
 	}
+}
 
-	return &config, nil
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
