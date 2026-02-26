@@ -9,6 +9,6 @@ services:
       - REFRAIN_LOG_LEVEL=info
       - REFRAIN_LIBRARIES=/music
       - REFRAIN_APP_WORKERS=5
-      - REFRAIN_SCAN_INTERVAL=@every 1h
+      - REFRAIN_SCAN_INTERVAL=1h
     volumes:
       - /path/to/your/music:/music

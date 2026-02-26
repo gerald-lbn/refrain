@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type LyricsProvider interface {
 	Search(ctx context.Context, track Track) ([]Lyrics, error)
@@ -12,7 +15,7 @@ type LibraryScanner interface {
 }
 
 type Scheduler interface {
-	AddFunc(ctx context.Context, spec string, cmd func()) error
-	Start(ctx context.Context) error
-	Stop(ctx context.Context) error
+	AddFunc(interval time.Duration, cmd func())
+	Start(ctx context.Context)
+	Stop()
 }

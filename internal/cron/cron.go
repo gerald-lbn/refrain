@@ -3,41 +3,45 @@ package scheduler
 import (
 	"context"
 	"log/slog"
-
-	goCron "github.com/robfig/cron/v3"
+	"time"
 )
 
 type scheduler struct {
-	logger *slog.Logger
-	cron   *goCron.Cron
+	logger  *slog.Logger
+	tickers []*time.Ticker
+	stop    chan struct{}
 }
 
-func New(logger *slog.Logger, cron *goCron.Cron) *scheduler {
+func New(logger *slog.Logger) *scheduler {
 	return &scheduler{
 		logger: logger,
-		cron:   cron,
+		stop:   make(chan struct{}),
 	}
 }
 
-func (s *scheduler) AddFunc(ctx context.Context, spec string, cmd func()) error {
-	s.logger.DebugContext(ctx, "Adding cron job", "spec", spec)
-	entry, err := s.cron.AddFunc(spec, cmd)
-	if err != nil {
-		s.logger.ErrorContext(ctx, "Failed to add cron job", "spec", spec, "error", err)
-		return err
-	}
-	s.logger.DebugContext(ctx, "Cron job added", "spec", spec, "entryID", entry)
-	return nil
+func (s *scheduler) AddFunc(interval time.Duration, cmd func()) {
+	ticker := time.NewTicker(interval)
+	s.tickers = append(s.tickers, ticker)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				s.logger.Debug("Running scheduled task", "interval", interval)
+				cmd()
+			case <-s.stop:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
-func (s *scheduler) Start(ctx context.Context) error {
-	s.logger.DebugContext(ctx, "Starting cron scheduler")
-	s.cron.Start()
-	return nil
+func (s *scheduler) Start(_ context.Context) {
+	s.logger.Debug("Scheduler started")
 }
 
-func (s *scheduler) Stop(ctx context.Context) error {
-	s.logger.DebugContext(ctx, "Stopping cron scheduler")
-	s.cron.Stop()
-	return nil
+func (s *scheduler) Stop() {
+	s.logger.Debug("Stopping scheduler")
+	close(s.stop)
 }

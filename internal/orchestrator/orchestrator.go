@@ -35,18 +35,14 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
 
 	for _, lib := range o.cfg.Libraries {
-		if lib.ScanInterval != "" {
-			if err := o.scheduler.AddFunc(ctx, lib.ScanInterval, func() {
+		if lib.ScanInterval > 0 {
+			o.scheduler.AddFunc(lib.ScanInterval, func() {
 				o.scanLibrary(context.Background(), lib.Path)
-			}); err != nil {
-				o.logger.ErrorContext(ctx, "Failed to schedule scan", "path", lib.Path, "error", err)
-			}
+			})
 		}
 	}
 
-	if err := o.scheduler.Start(ctx); err != nil {
-		return err
-	}
+	o.scheduler.Start(ctx)
 
 	for _, lib := range o.cfg.Libraries {
 		wg.Add(1)

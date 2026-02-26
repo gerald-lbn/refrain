@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,7 +24,7 @@ var _ = Describe("Config", func() {
 		Expect(cfg.LogLevel).To(Equal("info"))
 		Expect(cfg.Workers).To(Equal(5))
 		Expect(cfg.Libraries).To(BeEmpty())
-		Expect(cfg.ScanInterval).To(Equal("@every 1h"))
+		Expect(cfg.ScanInterval).To(Equal(time.Hour))
 	})
 
 	It("should read log level from env", func() {
@@ -74,11 +75,11 @@ var _ = Describe("Config", func() {
 
 	It("should apply scan interval to all libraries", func() {
 		os.Setenv(config.EnvLibraries, "/music")
-		os.Setenv(config.EnvScanInterval, "@every 30m")
+		os.Setenv(config.EnvScanInterval, "30m")
 
 		cfg := config.Load()
 		Expect(cfg.Libraries).To(HaveLen(1))
-		Expect(cfg.Libraries[0].ScanInterval).To(Equal("@every 30m"))
+		Expect(cfg.Libraries[0].ScanInterval).To(Equal(30 * time.Minute))
 	})
 
 	It("should skip empty paths", func() {

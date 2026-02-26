@@ -5,7 +5,6 @@ go 1.25.6
 require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
-	github.com/robfig/cron/v3 v3.0.0
 	go.senan.xyz/taglib v0.11.1
 	go.uber.org/dig v1.19.0
 	go.uber.org/mock v0.6.0
