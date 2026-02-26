@@ -1,13 +1,13 @@
-.PHONY: run test build clean lint
+.PHONY: run test coverage view-coverage build clean lint
 
 run:
 	go run cmd/refrain/main.go
 
 test:
-	ginkgo run ./...
+	go test ./...
 
 coverage:
-	ginkgo run -cover -coverprofile=coverage.out ./...
+	go test -cover -coverprofile=coverage.out ./...
 
 view-coverage: coverage
 	go tool cover -html=coverage.out
