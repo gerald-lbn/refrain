@@ -10,6 +10,7 @@ import (
 	"github.com/gerald-lbn/refrain/internal/config"
 	"github.com/gerald-lbn/refrain/internal/container"
 	"github.com/gerald-lbn/refrain/internal/orchestrator"
+	"github.com/gerald-lbn/refrain/internal/watcher"
 )
 
 func main() {
@@ -18,15 +19,14 @@ func main() {
 
 	c := container.Build()
 
-	err := c.Invoke(func(orc *orchestrator.Orchestrator, cfg *config.Config, logger *slog.Logger) {
+	err := c.Invoke(func(orc *orchestrator.Orchestrator, cfg *config.Config, w *watcher.Watcher, logger *slog.Logger) {
+		defer w.Close()
+
 		logger.InfoContext(ctx, "Starting Refrain...")
 
-		if err := orc.Run(context.Background()); err != nil {
+		if err := orc.Run(ctx); err != nil {
 			logger.ErrorContext(ctx, "Orchestrator failed", "error", err)
 		}
-
-		<-ctx.Done()
-		logger.InfoContext(ctx, "Shutting down...")
 	})
 
 	if err != nil {

@@ -3,6 +3,7 @@ module github.com/gerald-lbn/refrain
 go 1.25.6
 
 require (
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	go.senan.xyz/taglib v0.11.1

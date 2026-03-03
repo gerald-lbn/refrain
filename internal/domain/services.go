@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"time"
 )
 
 type LyricsProvider interface {
@@ -12,10 +11,4 @@ type LyricsProvider interface {
 
 type LibraryScanner interface {
 	Scan(ctx context.Context, path string) (<-chan Track, error)
-}
-
-type Scheduler interface {
-	AddFunc(interval time.Duration, cmd func())
-	Start(ctx context.Context)
-	Stop()
 }

@@ -10,39 +10,33 @@ import (
 	"github.com/gerald-lbn/refrain/internal/config"
 	"github.com/gerald-lbn/refrain/internal/domain"
 	"github.com/gerald-lbn/refrain/internal/helper"
+	"github.com/gerald-lbn/refrain/internal/metadata"
 	"github.com/gerald-lbn/refrain/internal/scanner"
+	"github.com/gerald-lbn/refrain/internal/watcher"
 )
 
 type Orchestrator struct {
-	cfg       *config.Config
-	scanner   *scanner.Scanner
-	provider  domain.LyricsProvider
-	scheduler domain.Scheduler
-	logger    *slog.Logger
+	cfg            *config.Config
+	scanner        *scanner.Scanner
+	provider       domain.LyricsProvider
+	watcher        *watcher.Watcher
+	metadataReader metadata.Reader
+	logger         *slog.Logger
 }
 
-func New(cfg *config.Config, s *scanner.Scanner, p domain.LyricsProvider, sched domain.Scheduler, logger *slog.Logger) *Orchestrator {
+func New(cfg *config.Config, s *scanner.Scanner, p domain.LyricsProvider, w *watcher.Watcher, mr metadata.Reader, logger *slog.Logger) *Orchestrator {
 	return &Orchestrator{
-		cfg:       cfg,
-		scanner:   s,
-		provider:  p,
-		scheduler: sched,
-		logger:    logger,
+		cfg:            cfg,
+		scanner:        s,
+		provider:       p,
+		watcher:        w,
+		metadataReader: mr,
+		logger:         logger,
 	}
 }
 
 func (o *Orchestrator) Run(ctx context.Context) error {
 	var wg sync.WaitGroup
-
-	for _, lib := range o.cfg.Libraries {
-		if lib.ScanInterval > 0 {
-			o.scheduler.AddFunc(lib.ScanInterval, func() {
-				o.scanLibrary(context.Background(), lib.Path)
-			})
-		}
-	}
-
-	o.scheduler.Start(ctx)
 
 	for _, lib := range o.cfg.Libraries {
 		wg.Add(1)
@@ -53,6 +47,33 @@ func (o *Orchestrator) Run(ctx context.Context) error {
 	}
 
 	wg.Wait()
+
+	paths := make([]string, len(o.cfg.Libraries))
+	for i, lib := range o.cfg.Libraries {
+		paths[i] = lib.Path
+	}
+
+	fileCh, err := o.watcher.Watch(ctx, paths)
+	if err != nil {
+		return fmt.Errorf("failed to start watcher: %w", err)
+	}
+
+	o.logger.InfoContext(ctx, "Watching for new music files", "paths", paths)
+
+	workers := o.cfg.Workers
+	var workerWg sync.WaitGroup
+
+	for range workers {
+		workerWg.Go(func() {
+			for filePath := range fileCh {
+				if err := o.processFile(ctx, filePath); err != nil {
+					o.logger.ErrorContext(ctx, "Failed to process file", "path", filePath, "error", err)
+				}
+			}
+		})
+	}
+
+	workerWg.Wait()
 	return nil
 }
 
@@ -84,6 +105,29 @@ func (o *Orchestrator) scanLibrary(ctx context.Context, path string) {
 	o.logger.InfoContext(ctx, "Scan complete", "path", path)
 }
 
+// processFile handles a single file path from the watcher.
+// It reads metadata and then processes the track.
+func (o *Orchestrator) processFile(ctx context.Context, filePath string) error {
+	if !helper.IsMusicFile(filePath) {
+		return nil
+	}
+
+	tags, err := o.metadataReader.Read(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read metadata: %w", err)
+	}
+
+	track := domain.Track{
+		Path:     filePath,
+		Title:    tags.Title,
+		Artist:   tags.Artist,
+		Album:    tags.Album,
+		Duration: tags.Duration,
+	}
+
+	return o.processTrack(ctx, track)
+}
+
 func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) error {
 	lrcPath := helper.ReplaceExtension(track.Path, ".lrc")
 	txtPath := helper.ReplaceExtension(track.Path, ".txt")
@@ -109,7 +153,7 @@ func (o *Orchestrator) processTrack(ctx context.Context, track domain.Track) err
 		return nil
 	}
 
-	// 3. Save Lyrics (Take the first one, preferably synced)
+	// Save Lyrics (Take the first one, preferably synced)
 	bestMatch := results[0]
 	for _, l := range results {
 		if l.IsSynced {

@@ -4,41 +4,30 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
-	DefaultAppWorkers   = 5
-	DefaultLogLevel     = "info"
-	DefaultScanInterval = time.Hour
+	DefaultAppWorkers = 5
+	DefaultLogLevel   = "info"
 
-	EnvAppWorkers   = "REFRAIN_APP_WORKERS"
-	EnvLogLevel     = "REFRAIN_LOG_LEVEL"
-	EnvLibraries    = "REFRAIN_LIBRARIES"
-	EnvScanInterval = "REFRAIN_SCAN_INTERVAL"
+	EnvAppWorkers = "REFRAIN_APP_WORKERS"
+	EnvLogLevel   = "REFRAIN_LOG_LEVEL"
+	EnvLibraries  = "REFRAIN_LIBRARIES"
 )
 
 type Config struct {
-	Libraries    []Library
-	LogLevel     string
-	Workers      int
-	ScanInterval time.Duration
+	Libraries []Library
+	LogLevel  string
+	Workers   int
 }
 
 type Library struct {
-	Path         string
-	ScanInterval time.Duration
+	Path string
 }
 
 // Load reads configuration from environment variables.
 func Load() *Config {
 	logLevel := getEnv(EnvLogLevel, DefaultLogLevel)
-	scanInterval := DefaultScanInterval
-	if intervalStr := os.Getenv(EnvScanInterval); intervalStr != "" {
-		if d, err := time.ParseDuration(intervalStr); err == nil {
-			scanInterval = d
-		}
-	}
 
 	workers := DefaultAppWorkers
 	if workersStr := os.Getenv(EnvAppWorkers); workersStr != "" {
@@ -53,18 +42,16 @@ func Load() *Config {
 			p = strings.TrimSpace(p)
 			if p != "" {
 				libraries = append(libraries, Library{
-					Path:         p,
-					ScanInterval: scanInterval,
+					Path: p,
 				})
 			}
 		}
 	}
 
 	return &Config{
-		Libraries:    libraries,
-		LogLevel:     logLevel,
-		Workers:      workers,
-		ScanInterval: scanInterval,
+		Libraries: libraries,
+		LogLevel:  logLevel,
+		Workers:   workers,
 	}
 }
 

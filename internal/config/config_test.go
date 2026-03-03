@@ -2,7 +2,6 @@ package config_test
 
 import (
 	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,7 +14,6 @@ var _ = Describe("Config", func() {
 		os.Unsetenv(config.EnvLogLevel)
 		os.Unsetenv(config.EnvAppWorkers)
 		os.Unsetenv(config.EnvLibraries)
-		os.Unsetenv(config.EnvScanInterval)
 	})
 
 	It("should use default values when no env vars are set", func() {
@@ -24,7 +22,6 @@ var _ = Describe("Config", func() {
 		Expect(cfg.LogLevel).To(Equal("info"))
 		Expect(cfg.Workers).To(Equal(5))
 		Expect(cfg.Libraries).To(BeEmpty())
-		Expect(cfg.ScanInterval).To(Equal(time.Hour))
 	})
 
 	It("should read log level from env", func() {
@@ -71,15 +68,6 @@ var _ = Describe("Config", func() {
 		Expect(cfg.Libraries).To(HaveLen(2))
 		Expect(cfg.Libraries[0].Path).To(Equal("/music"))
 		Expect(cfg.Libraries[1].Path).To(Equal("/jazz"))
-	})
-
-	It("should apply scan interval to all libraries", func() {
-		os.Setenv(config.EnvLibraries, "/music")
-		os.Setenv(config.EnvScanInterval, "30m")
-
-		cfg := config.Load()
-		Expect(cfg.Libraries).To(HaveLen(1))
-		Expect(cfg.Libraries[0].ScanInterval).To(Equal(30 * time.Minute))
 	})
 
 	It("should skip empty paths", func() {
